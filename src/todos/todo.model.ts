@@ -27,4 +27,10 @@ export class TodoModel extends Model {
 
   @Column({ type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW })
   date: string;
+
+  @Column({ allowNull: false, type: DataTypes.BOOLEAN, defaultValue: false })
+  isfinished: boolean;
+
+  @Column({ allowNull: false, type: DataTypes.BOOLEAN, defaultValue: false })
+  ispassed: boolean;
 }

@@ -22,6 +22,7 @@ export class TodosController {
   async createTodo(
     @Body() createTodoDto: CreateTodoDto,
   ): Promise<Success | Error> {
+    console.log("createTodoDto: ", createTodoDto);
     try {
       const res = await this.todosService.createTodo(createTodoDto);
       if (!res.data) {

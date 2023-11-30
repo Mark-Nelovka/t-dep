@@ -3,6 +3,8 @@ export class TodoEntity {
   title: string;
   description: string;
   date: string;
+  isfinished: boolean;
+  ispassed: boolean;
   createdAt?: string;
   updateAt?: string;
 }

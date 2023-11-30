@@ -17,12 +17,12 @@ export class TodosService {
   async createTodo(createTodoDto: CreateTodoDto): Promise<Success | Error> {
     try {
       await this.todoModel.create({ ...createTodoDto });
-      const todos = await this.todoModel.findAll();
+      const todos = await this.getAllTodo();
 
       return {
         statusCode: 201,
         message: 'Todo was created',
-        data: { todos: todos },
+        data: { todos: todos.data.todos },
       };
     } catch (err) {
       return {
@@ -36,9 +36,9 @@ export class TodosService {
   async getAllTodo() {
     try {
       const result = await this.todoModel.findAll({
-        order: ['id', 'DESC'],
+        order: [['id', 'DESC']],
       });
-      console.log(result);
+      // console.log(result);
       return {
         statusCode: 200,
         message: 'All todo',
@@ -100,7 +100,7 @@ export class TodosService {
       return {
         statusCode: 200,
         message: 'Todo was update',
-        data: { todos: result },
+        data: { todos: result.data.todos },
       };
     } catch (err) {
       return {
@@ -128,7 +128,7 @@ export class TodosService {
       return {
         statusCode: 200,
         message: 'Todo was deleted',
-        data: { todos: result },
+        data: { todos: result.data.todos },
       };
     } catch (err) {
       return {
