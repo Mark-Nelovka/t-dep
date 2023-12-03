@@ -5,9 +5,8 @@ export type Success = {
   message: string;
   data: {
     todos: TodoEntity[];
-  };
-  pagination?: {
-    total: number;
+    page: number;
+    countTodos: number;
   };
 };
 

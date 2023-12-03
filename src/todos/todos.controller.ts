@@ -8,6 +8,7 @@ import {
   Delete,
   HttpException,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { TodosService } from './todos.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
@@ -18,13 +19,13 @@ import { Success, Error } from './types';
 export class TodosController {
   constructor(private readonly todosService: TodosService) {}
 
-  @Post()
+  @Post(':current')
   async createTodo(
     @Body() createTodoDto: CreateTodoDto,
+    @Param('current') current: string
   ): Promise<Success | Error> {
-    console.log("createTodoDto: ", createTodoDto);
     try {
-      const res = await this.todosService.createTodo(createTodoDto);
+      const res = await this.todosService.createTodo(createTodoDto, current);
       if (!res.data) {
         throw res;
       }
@@ -41,14 +42,17 @@ export class TodosController {
     }
   }
 
-  @Get()
-  async getAllTodo(): Promise<Success | Error> {
+  @Get(':current')
+  async getAllTodo(
+  @Query('page') page: string,
+  @Param('current') current: string
+  ): Promise<Success | Error> {
     try {
-      const res = await this.todosService.getAllTodo();
+      const res = await this.todosService.getAllTodo(+page, current);
       if (!res.data) {
         throw res;
       }
-      return res;
+      return res as Success;
     } catch (error) {
       throw new HttpException(
         {
@@ -83,13 +87,15 @@ export class TodosController {
     }
   }
 
-  @Patch(':id')
+  @Patch(':current/:id')
   async updateTodoById(
     @Param('id') id: string,
+    @Param('current') current: string,
     @Body() updateTodoDto: UpdateTodoDto,
   ): Promise<Success | Error> {
+    console.log(current);
     try {
-      const res = await this.todosService.updateTodoById(+id, updateTodoDto);
+      const res = await this.todosService.updateTodoById(+id, updateTodoDto, current);
       if (!res.data) {
         throw res;
       }
@@ -106,10 +112,13 @@ export class TodosController {
     }
   }
 
-  @Delete(':id')
-  async removeTodoById(@Param('id') id: string): Promise<Success | Error> {
+  @Delete(':current/:id')
+  async removeTodoById(
+    @Param('id') id: string,
+    @Param('current') current: string,
+    ): Promise<Success | Error> {
     try {
-      const res = await this.todosService.removeTodoById(+id);
+      const res = await this.todosService.removeTodoById(+id, current);
       if (!res.data) {
         throw res;
       }

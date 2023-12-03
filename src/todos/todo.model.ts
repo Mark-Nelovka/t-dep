@@ -26,11 +26,8 @@ export class TodoModel extends Model {
   description: string;
 
   @Column({ type: DataTypes.DATEONLY, defaultValue: DataTypes.NOW })
-  date: string;
+  deadline: string;
 
   @Column({ allowNull: false, type: DataTypes.BOOLEAN, defaultValue: false })
-  isfinished: boolean;
-
-  @Column({ allowNull: false, type: DataTypes.BOOLEAN, defaultValue: false })
-  ispassed: boolean;
+  completed: boolean;
 }
