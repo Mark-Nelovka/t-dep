@@ -75,10 +75,6 @@ export class TodosService {
     page,
   }: IPropsGet): Promise<Success | Error> {
     let all: any;
-    if(this.Page === 1) {
-      this.Page = 2;
-      return;
-    }
     try {
       const allTodos = await this.todoModel.findAll({
         order: [['id', 'DESC']],
