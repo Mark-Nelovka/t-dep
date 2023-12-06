@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Sequelize } from 'sequelize-typescript';
 import { InjectModel } from '@nestjs/sequelize';
-import { CreateTodoDto } from './dto/create-todo.dto';
-import { UpdateTodoDto } from './dto/update-todo.dto';
-import { Success, Error } from './types';
+import { Success, Error, IPropsCreateTodo, IPropsRemoveTodoById, IPropsUpdateTodoById, IPropsGet } from './types';
 import { TodoModel } from './todo.model';
-import { TodoEntity } from './entities/todo.entity';
 import { checkDeadline } from './helper/checkDeadline';
 
 @Injectable()
@@ -25,45 +22,42 @@ export class TodosService {
   set Page(newPage) {
     this._page = newPage;
   }
-  //   async addMore(props: CreateTodoDto[]): Promise<Success | Error> {
-  //             const studentData = props.map((dto) => ({
-  //         title: dto.title,
-  //         description: dto.description,
-  //         deadline: dto.deadline,
-  //         completed: dto.completed,
-  //       }));
-  //   try {
-  //     await this.sequelize.transaction(async (t) => {
-  //       const transactionHost = { transaction: t };
-  //       await this.todoModel.bulkCreate(studentData, transactionHost);
-  //     });
-  //     return {
-  //       statusCode: 201,
-  //       message: 'Todo was created',
-  //       data: { todos: null,
-  //         countTodos: 1,
-  //       page: 1 },
-  //     };
-  //   } catch (err) {
-  //     return {
-  //       statusCode: err.statusCode || 500,
-  //       message: err.message || 'Internal Server Error ',
-  //       data: null,
-  //     };
-  //   }
-  // }
 
-  async createTodo(createTodoDto: CreateTodoDto, current: string): Promise<Success | Error> {
+  async createTodo({
+    createTodoDto,
+    offset,
+    limit,
+    page,
+  }: IPropsCreateTodo): Promise<Success | Error> {
     try {
       await this.todoModel.create({ ...createTodoDto });
-      const todos = await this.getAllTodo(1, current);
+      const getAll = this.getAllTodo({ offset, limit, page });
+      const getCompleted = this.getCompletedTodo({ offset, limit, page });
+      const getPassed = this.getPassedTodo({ offset, limit, page });
+
+      const [all, completed, passed] = await Promise.all([
+        getAll,
+        getCompleted,
+        getPassed,
+      ]);
 
       return {
         statusCode: 201,
         message: 'Todo was created',
-        data: { todos: todos.data.todos,
-          countTodos: todos.data.countTodos,
-          page: this.Page
+        data: {
+          todos: {
+            all: all.data.todos.all,
+            completed: completed.data.todos.completed,
+            passed: passed.data.todos.passed,
+          },
+          pagination: {
+            page: this.Page,
+            maxPage: {
+              all: all.data.pagination.maxPage.all,
+              completed: completed.data.pagination.maxPage.completed,
+              passed: passed.data.pagination.maxPage.passed,
+            },
+          },
         },
       };
     } catch (err) {
@@ -75,52 +69,129 @@ export class TodosService {
     }
   }
 
-  async getAllTodo(page: number, current: string): Promise<Success | Error> {
-    const firstIndex = page === 1 ? 0 * 10 : page * 10 - 10;
-    const lastIndex = page * 10;
-    let result:TodoEntity[];
+  async getAllTodo({
+    offset,
+    limit,
+    page,
+  }: IPropsGet): Promise<Success | Error> {
+    let all: any;
     try {
-      let allTodos: any;
-
-      switch (current) {
-        case 'completed':
-           allTodos = await this.todoModel.findAll({
-            order: [['id', 'DESC']],
-            where: {
-              completed: true,
-            }
-          });
-          result = allTodos;
-          break;
-        case 'passed':
-           allTodos = await this.todoModel.findAll({
-            order: [['id', 'DESC']],
-            where: {
-              completed: false
-            }
-          });
-          result = allTodos.filter((el) => checkDeadline(el.deadline));
-        break;
-        default:
-           allTodos = await this.todoModel.findAll({
-            order: [['id', 'DESC']],
-            where: {
-              completed: false
-            }
-          });
-          result = allTodos.filter((el) => !checkDeadline(el.deadline));
-          break;
-      }
+      const allTodos = await this.todoModel.findAll({
+        order: [['id', 'DESC']],
+        where: {
+          completed: false,
+        },
+      });
+      all = allTodos.filter((el) => !checkDeadline(el.deadline));
 
       this.Page = page;
 
       return {
         statusCode: 200,
         message: 'All todo',
-        data: { 
-        todos: result.slice(firstIndex, lastIndex),
-        countTodos: result.length,
-        page: this.Page
+        data: {
+          todos: {
+            all: all.slice(offset, limit),
+          },
+          pagination: {
+            maxPage: {
+              all:
+                all.length % 10 === 0
+                  ? all.length / 10
+                  : Math.floor(all.length / 10) + 1,
+            },
+            page: this.Page,
+          },
+        },
+      };
+    } catch (err) {
+      return {
+        statusCode: err.statusCode || 500,
+        message: err.message || 'Internal Server Error ',
+        data: null,
+      };
+    }
+  }
+
+  async getCompletedTodo({
+    offset,
+    limit,
+    page,
+  }: IPropsGet): Promise<Success | Error> {
+    let completed: any;
+
+    try {
+      const completedTodos = await this.todoModel.findAll({
+        order: [['id', 'DESC']],
+        where: {
+          completed: true,
+        },
+      });
+      completed = completedTodos;
+
+      this.Page = page;
+
+      return {
+        statusCode: 200,
+        message: 'Completed todo',
+        data: {
+          todos: {
+            completed: completed.slice(offset, limit),
+          },
+          pagination: {
+            maxPage: {
+              completed:
+                completed.length % 10 === 0
+                  ? completed.length / 10
+                  : Math.floor(completed.length / 10) + 1,
+            },
+            page: this.Page,
+          },
+        },
+      };
+    } catch (err) {
+      return {
+        statusCode: err.statusCode || 500,
+        message: err.message || 'Internal Server Error ',
+        data: null,
+      };
+    }
+  }
+
+  async getPassedTodo({
+    offset,
+    limit,
+    page,
+  }: IPropsGet): Promise<Success | Error> {
+    let passed: any;
+
+    try {
+      const passedTodos = await this.todoModel.findAll({
+        order: [['id', 'DESC']],
+        where: {
+          completed: false,
+        },
+      });
+      passed = passedTodos.filter((el) => checkDeadline(el.deadline));
+
+      this.Page = page;
+
+      return {
+        statusCode: 200,
+        message: 'Passed todo',
+        data: {
+          todos: {
+            passed: passed.slice(offset, limit),
+          },
+          pagination: {
+            maxPage: {
+              passed:
+                passed.length % 10 === 0
+                  ? passed.length / 10
+                  : Math.floor(passed.length / 10) + 1,
+            },
+            page: this.Page,
+          },
         },
       };
     } catch (err) {
@@ -160,7 +231,13 @@ export class TodosService {
     }
   }
 
-  async updateTodoById(id: number, updateTodoDto: UpdateTodoDto, current: string) {
+  async updateTodoById({
+    id,
+    updateTodoDto,
+    offset,
+    limit,
+    page,
+  }: IPropsUpdateTodoById): Promise<Success | Error> {
     try {
       const findTodo = await this.getTodoById(id);
       if (!findTodo.data) {
@@ -174,11 +251,35 @@ export class TodosService {
           },
         },
       );
-      const result = await this.getAllTodo(this.Page, current);
+
+      const getAll = this.getAllTodo({ offset, limit, page });
+      const getCompleted = this.getCompletedTodo({ offset, limit, page });
+      const getPassed = this.getPassedTodo({ offset, limit, page });
+
+      const [all, completed, passed] = await Promise.all([
+        getAll,
+        getCompleted,
+        getPassed,
+      ]);
+
       return {
         statusCode: 200,
         message: 'Todo was update',
-        data: { todos: result.data.todos },
+        data: {
+          todos: {
+            all: all.data.todos.all,
+            completed: completed.data.todos.completed,
+            passed: passed.data.todos.passed,
+          },
+          pagination: {
+            page: this.Page,
+            maxPage: {
+              all: all.data.pagination.maxPage.all,
+              completed: completed.data.pagination.maxPage.completed,
+              passed: passed.data.pagination.maxPage.passed,
+            },
+          },
+        },
       };
     } catch (err) {
       return {
@@ -189,7 +290,12 @@ export class TodosService {
     }
   }
 
-  async removeTodoById(id: number, current: string) {
+  async removeTodoById({
+    id,
+    offset,
+    limit,
+    page,
+  }: IPropsRemoveTodoById): Promise<Success | Error> {
     try {
       const findTodo = await this.getTodoById(id);
       if (!findTodo.data) {
@@ -201,11 +307,34 @@ export class TodosService {
         },
       });
 
-      const result = await this.getAllTodo(this.Page, current);
+      const getAll = this.getAllTodo({ offset, limit, page });
+      const getCompleted = this.getCompletedTodo({ offset, limit, page });
+      const getPassed = this.getPassedTodo({ offset, limit, page });
+
+      const [all, completed, passed] = await Promise.all([
+        getAll,
+        getCompleted,
+        getPassed,
+      ]);
+
       return {
         statusCode: 200,
         message: 'Todo was deleted',
-        data: { todos: result.data.todos },
+        data: {
+          todos: {
+            all: all.data.todos.all,
+            completed: completed.data.todos.completed,
+            passed: passed.data.todos.passed,
+          },
+          pagination: {
+            page: this.Page,
+            maxPage: {
+              all: all.data.pagination.maxPage.all,
+              completed: completed.data.pagination.maxPage.completed,
+              passed: passed.data.pagination.maxPage.passed,
+            },
+          },
+        },
       };
     } catch (err) {
       return {

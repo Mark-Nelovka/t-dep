@@ -15,17 +15,24 @@ import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { Success, Error } from './types';
 
-@Controller('todos')
+@Controller('api/todos')
 export class TodosController {
   constructor(private readonly todosService: TodosService) {}
 
-  @Post(':current')
+  @Post()
   async createTodo(
     @Body() createTodoDto: CreateTodoDto,
-    @Param('current') current: string
+    @Query('page') page: string,
+    @Query('offset') offset: string,
+    @Query('limit') limit: string,
   ): Promise<Success | Error> {
     try {
-      const res = await this.todosService.createTodo(createTodoDto, current);
+      const res = await this.todosService.createTodo({
+        createTodoDto,
+        offset: +offset,
+        limit: +limit,
+        page: +page,
+      });
       if (!res.data) {
         throw res;
       }
@@ -42,13 +49,74 @@ export class TodosController {
     }
   }
 
-  @Get(':current')
+  @Get()
   async getAllTodo(
-  @Query('page') page: string,
-  @Param('current') current: string
+    @Query('page') page: string,
+    @Query('offset') offset: string,
+    @Query('limit') limit: string,
   ): Promise<Success | Error> {
     try {
-      const res = await this.todosService.getAllTodo(+page, current);
+      const res = await this.todosService.getAllTodo({
+        offset: +offset,
+        limit: +limit,
+        page: +page,
+      });
+      if (!res.data) {
+        throw res;
+      }
+      return res as Success;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: error.message,
+          data: error.data || null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('/completed')
+  async getCompletedTodo(
+    @Query('page') page: string,
+    @Query('offset') offset: string,
+    @Query('limit') limit: string,
+  ): Promise<Success | Error> {
+    try {
+      const res = await this.todosService.getCompletedTodo({
+        offset: +offset,
+        limit: +limit,
+        page: +page,
+      });
+      if (!res.data) {
+        throw res;
+      }
+      return res as Success;
+    } catch (error) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: error.message,
+          data: error.data || null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('/passed')
+  async getPassedTodo(
+    @Query('page') page: string,
+    @Query('offset') offset: string,
+    @Query('limit') limit: string,
+  ): Promise<Success | Error> {
+    try {
+      const res = await this.todosService.getPassedTodo({
+        offset: +offset,
+        limit: +limit,
+        page: +page,
+      });
       if (!res.data) {
         throw res;
       }
@@ -87,15 +155,22 @@ export class TodosController {
     }
   }
 
-  @Patch(':current/:id')
+  @Patch(':id')
   async updateTodoById(
     @Param('id') id: string,
-    @Param('current') current: string,
+    @Query('offset') offset: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
     @Body() updateTodoDto: UpdateTodoDto,
   ): Promise<Success | Error> {
-    console.log(current);
     try {
-      const res = await this.todosService.updateTodoById(+id, updateTodoDto, current);
+      const res = await this.todosService.updateTodoById({
+        id: +id,
+        updateTodoDto,
+        offset: +offset,
+        limit: +limit,
+        page: +page,
+      });
       if (!res.data) {
         throw res;
       }
@@ -112,13 +187,20 @@ export class TodosController {
     }
   }
 
-  @Delete(':current/:id')
+  @Delete(':id')
   async removeTodoById(
     @Param('id') id: string,
-    @Param('current') current: string,
-    ): Promise<Success | Error> {
+    @Query('offset') offset: string,
+    @Query('limit') limit: string,
+    @Query('page') page: string,
+  ): Promise<Success | Error> {
     try {
-      const res = await this.todosService.removeTodoById(+id, current);
+      const res = await this.todosService.removeTodoById({
+        id: +id,
+        offset: +offset,
+        limit: +limit,
+        page: +page,
+      });
       if (!res.data) {
         throw res;
       }

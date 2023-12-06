@@ -7,6 +7,7 @@ async function bootstrap() {
     origin: 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
+
   await app.listen(8080);
 }
 bootstrap();
