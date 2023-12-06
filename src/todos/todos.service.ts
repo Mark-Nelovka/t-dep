@@ -13,7 +13,7 @@ export class TodosService {
     private todoModel: typeof TodoModel,
   ) {}
 
-  private _page = 1;
+  private _page = 2;
 
   get Page() {
     return this._page;
@@ -75,6 +75,10 @@ export class TodosService {
     page,
   }: IPropsGet): Promise<Success | Error> {
     let all: any;
+    if(this.Page === 1) {
+      this.Page = 2;
+      return;
+    }
     try {
       const allTodos = await this.todoModel.findAll({
         order: [['id', 'DESC']],
